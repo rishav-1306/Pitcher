@@ -1,0 +1,42 @@
+name: Daily Automated 3-Commits
+
+on:
+  schedule:
+    # Runs daily at 04:00 UTC (09:30 AM IST) - entirely in the GitHub cloud
+    - cron: '0 4 * * *'
+  workflow_dispatch: # Allows manual run at any time from GitHub Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  make-daily-commits:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git identity for Heatmap Contribution
+        run: |
+          # Uses repository owner so commits are attributed to your personal GitHub profile heatmap
+          git config --global user.name "${{ github.repository_owner }}"
+          git config --global user.email "${{ github.repository_owner }}@users.noreply.github.com"
+
+      - name: Generate 3 automated commits
+        run: |
+          mkdir -p logs
+          for i in {1..3}
+          do
+            TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+            echo "Automated contribution #$i - $TIMESTAMP" >> logs/activity.log
+            git add logs/activity.log
+            git commit -m "chore(activity): contribution #$i for $(date -u +'%Y-%m-%d') [skip ci]"
+            sleep 2
+          done
+
+      - name: Push commits to repository
+        run: |
+          git push origin HEAD:${{ github.ref_name }}
